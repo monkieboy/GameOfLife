@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using GameOfLife.Entities;
 using System.Linq;
 
@@ -15,7 +17,6 @@ namespace GameOfLife
         {
             this.startingState = startingState;
             this.maxCycles = maxCycles;
-
             Simulate();
         }
 
@@ -25,7 +26,15 @@ namespace GameOfLife
             {
                 for (var j = 0; j < startingState[0].Length; j++)
                 {
-                    if (CanReproduce(startingState[i][j]))
+                    if (OverCrowded(startingState[i][j]))
+                    {
+                        Simulation[i][j].State = CellState.Dead;
+                    }
+                    else if (CanReproduce(startingState[i][j]))
+                    {
+                        Simulation[i][j].State = CellState.Live;
+                    }
+                    else if (Survives(startingState[i][j]))
                     {
                         Simulation[i][j].State = CellState.Live;
                     }
@@ -50,14 +59,27 @@ namespace GameOfLife
 
         private bool CanReproduce(Cell cell)
         {
-            return CheckAdjacentCellsForSignsOfLife(cell);
+            return CheckAdjacentCellsForSignsOfLife(cell).Count(x => x.State == CellState.Live) > 2;
         }
 
-        private bool CheckAdjacentCellsForSignsOfLife(Cell cell)
+        private bool OverCrowded(Cell cell)
+        {
+            return CheckAdjacentCellsForSignsOfLife(cell).Count(x => x.State == CellState.Live) > 3;
+        }
+
+        private bool Survives(Cell cell)
+        {
+            var count = CheckAdjacentCellsForSignsOfLife(cell).Count(x => x.State == CellState.Live);
+            return cell.State == CellState.Live && count > 1 && count < 4;
+        }
+
+        private IEnumerable<Cell> CheckAdjacentCellsForSignsOfLife(Cell cell)
         {
             var cells = LoadAdjacentCells(cell);
 
-            return cells.Count(x => x.State == CellState.Live) > 2;
+//            var adjacentLiveCells = cells.Count(x => x.State == CellState.Live);
+            //return adjacentLiveCells > 2 && adjacentLiveCells < 4;
+            return cells;
         }
 
         private IEnumerable<Cell> LoadAdjacentCells(Cell cell)
@@ -157,6 +179,21 @@ namespace GameOfLife
         private static bool NotAtTheLeftEdgeAlready(Cell cell)
         {
             return cell.Y - 1 > -1;
+        }
+
+        public static string PrintSimulation(Cell[][] simulation)
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < simulation.Length; i++)
+            {
+                for (var j = 0; j < simulation[0].Length; j++)
+                {
+                    sb.AppendFormat("[{0}]", simulation[i][j].State == CellState.Live ? "x" : " ");
+                }
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
         }
     }
 }
